@@ -1,0 +1,9 @@
+.byebug_history
+/node_modules
+/yarn-error.log
+yarn-debug.log*
+.yarn-integrity
+.tags*
+.DS_Store
+.env
+__pycache__/
