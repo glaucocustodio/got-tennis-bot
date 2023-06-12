@@ -1,12 +1,17 @@
 from tennis_explorer_scraper import get_te_matchlist_all, get_te_match_json, get_te_player
 from pandarallel import pandarallel
 import pandas as pd
-from datetime import datetime
 import pycountry
 import flag
+import os, sys
+from dotenv import load_dotenv
+from twitter import tweet
+
+load_dotenv()
 
 pandarallel.initialize()
 
+# games = get_te_matchlist_all(year='2023', month='06', day='14')
 games = get_te_matchlist_all()
 
 def get_match_data(row):
@@ -34,10 +39,17 @@ def get_match_data(row):
 
   return row
 
+# top 100 players
+relevant_rank = 100
+
 # to debug with breakpoint(), use apply instead of parallel_apply
-# head in case I want to limit when developing locally
-# get games of the day when both players have ranking position <= 50
-match_data = games.head(5000).parallel_apply(get_match_data, axis=1).query('status != "complete"').query('player1_ranking <= 50 and player2_ranking <= 50')
+# head function is used just in case I want to limit when developing locally
+# get games of the day when both players have ranking position <= relevant_rank
+match_data = games\
+.head(50)\
+.parallel_apply(get_match_data, axis=1)\
+.query('status != "complete"')\
+.query(f"player1_ranking <= {relevant_rank} and player2_ranking <= {relevant_rank}")
 
 full_games = pd.merge(games, match_data, left_on="match_link", right_on="match_link")
 
@@ -54,34 +66,50 @@ def get_player_data(row):
       row['player1_country_emoji'] = flag.flag(
         pycountry.countries.search_fuzzy(player1_country)[0].alpha_2
       )
+      verbose_player1_name = f"{row['player1_country_emoji']} {row['player1_name']}"
     except LookupError:
       print(f"couldn't find country {player1_country}")
-      row['player1_country_emoji'] = player1_country
+      verbose_player1_name = row['player1_name']
 
     try:
       row['player2_country_emoji'] = flag.flag(
         pycountry.countries.search_fuzzy(player2_country)[0].alpha_2
       )
+      verbose_player2_name = f"{row['player2_country_emoji']} {row['player2_name']}"
     except LookupError:
       print(f"couldn't find country {player2_country}")
-      row['player2_country_emoji'] = player2_country
+      verbose_player2_name = row['player2_name']
   except:
     print(f"failed to get player data for {row}")
     pass
 
+  tour = row['tour'].upper()
+  tournament_hashtag = row['tournament'].replace(" ", "")
+  player1_hashtag = row['player1_name'].replace(" ", "")
+  player2_hashtag = row['player2_name'].replace(" ", "")
+
   row["tweet"] = f"""
-  Game: {row['player1_country_emoji']} {row['player1_name']} (rank #{int(row['player1_ranking'])}) vs {row['player2_country_emoji']} {row['player2_name']} (rank #{int(row['player2_ranking'])})
-  Tournament: {row['tour'].upper()} {row['tournament']} ({row['matchtype']} - {row['round']})
+  Game: {verbose_player1_name} (rank #{int(row['player1_ranking'])}) vs {verbose_player2_name} (rank #{int(row['player2_ranking'])})
+  Tournament: {tour} {row['tournament']} ({row['matchtype']} - {row['round']})
   Local time: {row['match_time']}
   Surface: {row['surface']}
+
+  #{tour} #{tournament_hashtag} #{player1_hashtag} #{player2_hashtag} #tennis
   """
 
   row["tweet"] = "\n".join(line.strip() for line in row["tweet"].strip().splitlines())
 
   return row
 
+
+if len(full_games) == 0:
+  sys.exit("no relevant games found for this day!!")
+
 # to debug with breakpoint(), use apply instead of parallel_apply
 final = full_games.dropna().parallel_apply(get_player_data, axis=1)
-
 print(final)
-print(final.iloc[0]['tweet'])
+
+def post_tweet(row):
+  tweet(row['tweet'])
+
+final.apply(post_tweet, axis=1)

@@ -2,7 +2,7 @@
 
 A bot to get the best games of the day from [tennisexplorer.com](https://tennisexplorer.com) and tweet.
 
-Best games: games from players that have rank position <= 50
+Best games: games from players that have rank position <= 100
 
 Tennis Explorer scraper copied from: [https://github.com/chaene82/tennisexplorer](https://github.com/chaene82/tennisexplorer)
 
