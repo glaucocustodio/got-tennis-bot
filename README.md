@@ -7,11 +7,13 @@ Best games: games from players that have rank position <= 100
 Tennis Explorer scraper copied from: [https://github.com/chaene82/tennisexplorer](https://github.com/chaene82/tennisexplorer)
 
 ## Installation
+Built with Python 3.8.9.
+
 ```shell
-pip install -r requirements.txt
+make install
 ```
 
 ## Running
 ```shell
-python bot.py
+make run
 ```
