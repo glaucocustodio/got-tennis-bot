@@ -46,7 +46,7 @@ for match_type in ['wta-single', 'atp-single']:
   # head function is used just in case I want to limit when developing locally
   # get games of the day when both players have ranking position <= relevant_rank
   match_data = games\
-  .head(50)\
+  .head(1000)\
   .parallel_apply(get_match_data, axis=1)\
   .query('status != "complete"')\
   .query(f"player1_ranking <= {relevant_rank} and player2_ranking <= {relevant_rank}")
@@ -83,10 +83,13 @@ for match_type in ['wta-single', 'atp-single']:
       print(f"failed to get player data for {row}")
       pass
 
+    def hashify(name):
+      return name.replace(" ", "").replace("'", "").replace("-", "")
+
     tour = row['tour'].upper()
-    tournament_hashtag = row['tournament'].replace(" ", "")
-    player1_hashtag = row['player1_name'].replace(" ", "")
-    player2_hashtag = row['player2_name'].replace(" ", "")
+    tournament_hashtag = hashify(row['tournament'])
+    player1_hashtag = hashify(row['player1_name'])
+    player2_hashtag = hashify(row['player2_name'])
 
     row["tweet"] = f"""
     {verbose_player1_name} (rank #{int(row['player1_ranking'])}) vs {verbose_player2_name} (rank #{int(row['player2_ranking'])})\n
