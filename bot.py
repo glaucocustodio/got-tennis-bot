@@ -17,10 +17,13 @@ for match_type in ['wta-single', 'atp-single']:
   def get_match_data(row):
     print(f"getting match data for {row['match_link']}")
 
+    def convert_to_int(value):
+      return int(value) if isinstance(value, (int, float)) else 99999
+
     try:
       match_data = get_te_match_json(match_url=row['match_link'])
-      row['player1_ranking'] = int(match_data['player1']['ranking_pos'].rstrip('.'))
-      row['player2_ranking'] = int(match_data['player2']['ranking_pos'].rstrip('.'))
+      row['player1_ranking'] = convert_to_int(match_data['player1']['ranking_pos'].rstrip('.'))
+      row['player2_ranking'] = convert_to_int(match_data['player2']['ranking_pos'].rstrip('.'))
       row['surface'] = match_data['surface']
       row['event_name'] = match_data['event_name']
       row['tournament'] = match_data['tournament']
@@ -46,6 +49,7 @@ for match_type in ['wta-single', 'atp-single']:
   # head function is used just in case I want to limit when developing locally
   # get games of the day when both players have ranking position <= relevant_rank
   match_data = games\
+  .query('time != "--:--"')\
   .head(1000)\
   .parallel_apply(get_match_data, axis=1)\
   .query('status != "complete"')\
@@ -106,7 +110,8 @@ for match_type in ['wta-single', 'atp-single']:
 
 
   if len(full_games) == 0:
-    sys.exit("no relevant games found for this day!!")
+    print(f"{match_type}: no relevant games found for this day!!\n\n".upper())
+    continue
 
   # to debug with breakpoint(), use apply instead of parallel_apply
   final = full_games.dropna().parallel_apply(get_player_data, axis=1)
