@@ -3,7 +3,7 @@ from pandarallel import pandarallel
 import pandas as pd
 import pycountry
 import flag
-import os, sys
+import os, sys, re
 from twitter import tweet
 from dotenv import load_dotenv
 
@@ -18,7 +18,10 @@ for match_type in ['wta-single', 'atp-single']:
     print(f"getting match data for {row['match_link']}")
 
     def convert_to_int(value):
-      return int(value) if isinstance(value, (int, float)) else 99999
+      if re.match(r'^\d+$', value):
+        return int(value)
+      else:
+        return 99999
 
     try:
       match_data = get_te_match_json(match_url=row['match_link'])
